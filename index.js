@@ -55,8 +55,6 @@ const handlers = {
         dir = dir.charAt(0).toUpperCase() + dir.substring(1);
         var str1 = titleCase(this.event.request.intent.slots.road.value);
         var str2 = titleCase(this.event.request.intent.slots.street.value);
-        
-        // var str2 = this.event.request.intent.slots.street.value;
 
         
         var stpid = '';
@@ -65,28 +63,23 @@ const handlers = {
         responseState = this;
         var url = "http://www.ctabustracker.com/bustime/api/v2/getstops?key=WavXPF2WZPanZypHaUdxgrF4Y&rt="+bus+"&dir="+dir+"bound&format=json";
         request(url, function (error, response, body) {
-          if(body && responseState != null){
+          if(body && responseState != null) {
             // var database = firebase.database();
             var data = JSON.parse(body);
-
-              
 
             var foundStop = null;
             // var allStops = "";
             data['bustime-response']['stops'].map(stop => {
-              // allStops += "(" + stop['stpnm'].trim() + ", " + str1.trim() + " & " + str2.trim() + "   " + (stop['stpnm'].trim() === str1.trim() + " & " + str2.trim()) + "),  ";
               if(stopsMatch(str1.trim(), str2.trim(), stop['stpnm'].trim())){
                 foundStop = stop;
-              }
-              //if(stop['stpnm'].trim() === str1.trim() + " & " + str2.trim()){
-                
-              
+                //break here to save time!!!!! Likely not possible
+              }        
             });
 
             if(foundStop != null) {
                 //don't speak if found stop
                 stpid = foundStop['stpid'];
-                url = "http://ctabustracker.com/bustime/api/v2/getpredictions?key=WavXPF2WZPanZypHaUdxgrF4Y&&stpid="+stpid+"&format=json&top=3";
+                url = "http://ctabustracker.com/bustime/api/v2/getpredictions?key=WavXPF2WZPanZypHaUdxgrF4Y&&stpid="+stpid+"&format=json&top=2";
                 request(url, function (error, response, body) {
                   if(body && responseState != null){
                     //var database = firebase.database();
@@ -107,16 +100,16 @@ const handlers = {
                         responseState.emit(':responseReady');
                     }
                     else {
-                        responseState.response.speak("The next bus comes in the morning, sorry.");
+                        responseState.response.speak("The next bus comes isn't coming soon, sorry.");
                         responseState.emit(':responseReady');
                     }
                     
                   }
                 });
    
-            }else{
+            } else {
                 //stop not found
-                responseState.response.speak("did not find stop: " + str1 + " & " + str2 + " : " + allStops);
+                responseState.response.speak("did not find stop: " + str1 + " & " + str2);//+ " : " + allStops);
                 responseState.emit(':responseReady');
             }
           }
@@ -131,9 +124,7 @@ const handlers = {
         dir = dir.charAt(0).toUpperCase() + dir.substring(1);
         var str1 = titleCase(this.event.request.intent.slots.road.value);
         var str2 = titleCase(this.event.request.intent.slots.street.value);
-        // var str1 = this.event.request.intent.slots.road.value;
-        // var str2 = this.event.request.intent.slots.street.value;
-//        var busNickName = this.event.request.intent.slots.busNickName.value;
+
 
         var stpid = '';
         let numBusses = 3; //max amount of predictions to list out
@@ -196,7 +187,7 @@ const handlers = {
                         responseState.emit(':responseReady');
                     }
                     else {
-                        responseState.response.speak("The next bus comes in the morning, sorry.");
+                        responseState.response.speak("The next bus isn't coming for at least 30 minutes.");
                         responseState.emit(':responseReady');
                     }
                     
@@ -233,16 +224,199 @@ const handlers = {
     
     },
     'getTrainTime': function () {
-        var train = this.event.request.intent.slots.trainLine.value;
-        var dir = this.event.request.intent.slots.direction.value;
-        if (dir != undefined)  {
+        var dir = "north";
+        dir = dir.charAt(0).toUpperCase();
+        var stopnm = "Argyle"
+        var color = "red"
+        
+        var stpid = '';
+        let numBusses = 3; //max amount of predictions to list out
 
+        responseState = this;
+        var url = "https://data.cityofchicago.org/resource/8mj8-j3c4.json";
+        request(url, function (error, response, body) {
+            if(body && responseState != null) {
+                // var database = firebase.database();
+                var data = JSON.parse(body);
+                responseState.response.speak("data[0] is: "+data[0][0]+" data[1] is: "+data[1][0]+" data[2] is: "+data[2][0]+
+                    "......data[0][stop_name] is: "+data[0]["stop_name"]+" data[1] is: "+data[1]["stop_name"]+" data[2] is: "+data[2][0]));
+                responseState.emit(':responseReady');
+            
+
+                for (var stop in data) {
+                    responseState.response.speak("stop is: "+stop);
+                    responseState.emit(':responseReady');
+                    var temp = stop['stop_name'];
+                    if (temp != undefined) {
+                        var n = temp.indexOf('(');
+                        temp = temp.substring(0, n != -1 ? n-1 : temp.length);
+                        temp = temp.trim();
+                        
+                        responseState.response.speak("1.The >"+stop[color]+"< line cannot be found at >"+temp+"<. It's different from >"+stopnm+"<. Train is going >"+stop[direction_id]+"<.");
+                        responseState.emit(':responseReady');
+
+                       //  if (stop[color] && stop[direction_id] == dir && temp == stopnm) {
+                       //      trnstpid = stop[stop_id];
+                       //      responseState.response.speak("2.The >"+color+"< line cannot be found at >"+stopnm+"< going >"+dir+"<. By the way, the stop we're comparing to is "+temp+"");
+                       //      responseState.emit(':responseReady');
+                       //      break;
+                       // }
+                       } else if (temp == undefined) {
+                            responseState.response.speak("temp is null");
+                            responseState.emit(':responseReady');
+                       }
+                }
+            } else if (body == null) {
+                responseState.response.speak("body is null");
+                responseState.emit(':responseReady');
+            } else if (responseState == null) {
+                responseState.response.speak("response is null");
+                responseState.emit(':responseReady');
+            }
+
+                
+            //stop not found
+            responseState.response.speak("Here's data: " + data[0]['stop_name'].indexOf('(')+"..."+data[0]['stop_name'].substring(0,6));//+ " : " + allStops);
+            responseState.emit(':responseReady');
+        
+        });
+
+
+
+
+
+
+        /*
+        //api key: 97e58b296d9742888e61ff9c2ba6bf55
+        //test: http://lapi.transitchicago.com/api/1.0/ttarrivals.aspx?key=97e58b296d9742888e61ff9c2ba6bf55&mapid=40380
+        var color = this.event.request.intent.slots.trainLine.value;
+        var dir = this.event.request.intent.slots.direction.value;
+        dir = dir.charAt(0).toUpperCase();
+        var stopnm = this.event.request.intent.slots.stop.value;
+        if (color == 'brown') {
+            color = 'brn';
+        }
+        else if (color == 'pink') {
+            color = 'pnk';
+        }
+        else if (color == 'orange') {
+            color = 'o';
+        }
+        else if (color == 'purple') {
+            color = 'p';
+        }
+        else if (color == 'orange') {
+            color = 'o';
+        }
+        else if (color == 'purple express') {
+            color = 'pexp';
+        }
+        else if (color == 'green') {
+            color = 'g';
+        }
+
+        let numTrains = 2;
+
+        var trnstpid = '';
+        responseState = this;
+
+       // var url = "http://lapi.transitchicago.com/api/1.0/ttpositions.aspx?key=97e58b296d9742888e61ff9c2ba6bf55&rt=red&outputType=JSON"
+        var url = "http://data.cityofchicago.org/resource/8mj8-j3c4.json"
+
+       try {
+            
+            request(url, function (error, response, body) {
+                this.response.speak("TWOOOOOOOOOO");
+                    responseState.emit(':responseReady');
+                if(body && responseState != null) {
+                    
+                // var database = firebase.database();
+                    var data = JSON.parse(body);
+                    data = data[0]
+                    // var foundTrainStop = null;
+
+                    for (var stop in data) {
+                        var temp = stop[stop_name];
+                        let n = temp.indexOf('(');
+                        temp = temp.substring(0, n != -1 ? n-1 : temp.length);
+                        temp = temp.trim();
+                        
+                        this.response.speak("The >"+stop[color]+"< line cannot be found at >"+temp+"< going >"+stop[direction_id]+"<. By the way, the stop we're comparing to is "+temp+"");
+                        responseState.emit(':responseReady');
+
+                        if (stop[color] && stop[direction_id] == dir.charAt(0) && temp == stopnm) {
+                            trnstpid = stop[stop_id];
+                            this.response.speak("The >"+color+"< line cannot be found at >"+stopnm+"< going >"+dir+"<. By the way, the stop we're comparing to is "+temp+"");
+                            responseState.emit(':responseReady');
+                            break;
+                        }
+                    }
+                }
+            }); 
+
+   
+        } catch (err) {
+            this.response.speak("TWOOOOOOOOOO");
+            responseState.emit(':responseReady');
+        }
+        finally {
+            this.response.speak("THREEEEEEEE");
+            responseState.emit(':responseReady');
+        }
+        
+
+        if (trnstpid != '')  {
+            var url = "http://lapi.transitchicago.com/api/1.0/ttarrivals.aspx?key=97e58b296d9742888e61ff9c2ba6bf55&stpid="+trnstpid+"&max=5&outputType=JSON"
             this.response.speak("The "+train+" line going "+dir+" comes real soon");
+
+            request (url, function (error, response, body) {
+                if (body && responseState != null) {
+                    var data = JSON.parse(body);
+
+
+                    data = data['ctatt']['eta'];
+
+                    if (data != undefined) {
+                        arrivals = [];
+                        data.map(times => {
+                            if (data['isApp'] != 1) {
+                                let tempCtaDate = data['arrT'];
+                                let ctaDate = new Date(Date.parse(tempCtaDate));
+                                let currentDate = new Date();
+                                let eta = Math.abs( - currentDate);
+                                let eta_toMinutes = Math.floor(eta / 60000);
+                                arrivals.push(eta_toMinutes);
+                                
+                            }
+                            else {
+                                arrivals.push('DUE');
+                            }
+                        });
+
+                        if (arrivals[0] = 'DUE' && arrivals.length > 1) {
+                            responseState.response.speak("The train is due now. The next train is due in " + arrivals[1] + " minutes.");
+                            
+                        }
+                        else {
+                            responseState.response.speak("The train is due in " + arrivals[0] + " minutes.");
+                        }
+                        responseState.emit(':responseReady');
+                    }
+
+                    else {
+                        responseState.response.speak("The next train comes isn't coming soon, sorry.");
+                        responseState.emit(':responseReady');
+                    }
+
+
+                }
+            });
         }
         else {
-            this.response.speak("The "+train+" line is coming soon from all directions");
+            this.response.speak("The >"+color+"< line cannot be found at >"+stopnm+"< going >"+dir+"<. By the way, the stop we're compa");
         }
         this.emit(':responseReady');
+        */
     },
     'setTrainFav': function () {
 

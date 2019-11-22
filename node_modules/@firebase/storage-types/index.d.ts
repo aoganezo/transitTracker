@@ -19,6 +19,11 @@ import { Observer, Unsubscribe } from '@firebase/util';
 
 export interface FullMetadata extends UploadMetadata {
   bucket: string;
+  /**
+   * @deprecated
+   * Use Reference.getDownloadURL instead. This property will be removed in a
+   * future release.
+   */
   downloadURLs: string[];
   fullPath: string;
   generation: string;
@@ -32,13 +37,16 @@ export interface FullMetadata extends UploadMetadata {
 export interface Reference {
   bucket: string;
   child(path: string): Reference;
-  delete(): Promise<any>;
+  delete(): Promise<void>;
   fullPath: string;
-  getDownloadURL(): Promise<any>;
-  getMetadata(): Promise<any>;
+  getDownloadURL(): Promise<string>;
+  getMetadata(): Promise<FullMetadata>;
   name: string;
   parent: Reference | null;
-  put(data: any | any | any, metadata?: UploadMetadata): UploadTask;
+  put(
+    data: Blob | Uint8Array | ArrayBuffer,
+    metadata?: UploadMetadata
+  ): UploadTask;
   putString(
     data: string,
     format?: StringFormat,
@@ -47,7 +55,7 @@ export interface Reference {
   root: Reference;
   storage: Storage;
   toString(): string;
-  updateMetadata(metadata: SettableMetadata): Promise<any>;
+  updateMetadata(metadata: SettableMetadata): Promise<FullMetadata>;
 }
 
 export interface SettableMetadata {
@@ -74,7 +82,10 @@ export interface UploadTask {
   catch(onRejected: (a: Error) => any): Promise<any>;
   on(
     event: TaskEvent,
-    nextOrObserver?: Observer<any, any> | null | ((a: Object) => any),
+    nextOrObserver?:
+      | Observer<UploadTaskSnapshot, Error>
+      | null
+      | ((a: UploadTaskSnapshot) => any),
     error?: ((a: Error) => any) | null,
     complete?: (Unsubscribe) | null
   ): Function;
@@ -89,6 +100,11 @@ export interface UploadTask {
 
 export interface UploadTaskSnapshot {
   bytesTransferred: number;
+  /**
+   * @deprecated
+   * Use Reference.getDownloadURL instead. This property will be removed in a
+   * future release.
+   */
   downloadURL: string | null;
   metadata: FullMetadata;
   ref: Reference;
@@ -105,6 +121,6 @@ export class FirebaseStorage {
   maxUploadRetryTime: number;
   ref(path?: string): Reference;
   refFromURL(url: string): Reference;
-  setMaxOperationRetryTime(time: number): any;
-  setMaxUploadRetryTime(time: number): any;
+  setMaxOperationRetryTime(time: number): void;
+  setMaxUploadRetryTime(time: number): void;
 }
